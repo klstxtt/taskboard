@@ -80,6 +80,10 @@ placeholder values, belongs in the repository.
 | `DATABASE_URL` | Database connection string (used in a later session) |
 | `SECRET_KEY` | Application secret (used in a later session) |
 
+## Security
+
+Known risks and existing controls: [docs/security-notes.md](docs/security-notes.md).
+
 ## Project structure
 
 ```
@@ -96,6 +100,7 @@ taskboard/
 │   ├── conftest.py        # fixtures: test client, empty store per test
 │   └── test_tasks.py
 ├── docs/
+│   └── security-notes.md  # first risk table (see below)
 ├── .gitignore
 ├── .env.example
 ├── README.md

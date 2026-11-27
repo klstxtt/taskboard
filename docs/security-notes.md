@@ -1,0 +1,14 @@
+# TaskBoard -- initial security notes
+
+Input for the threat-modeling session of 4 December. State of the project: v0.1, in-memory
+storage, no authentication.
+
+| Question | Our answer |
+| --- | --- |
+| What data does the application handle? | Task IDs, titles, descriptions and statuses. Descriptions are free text, so users may paste personal or confidential data in them. Later: users, task owners, credentials. |
+| Who should be able to create, update or delete a task? | Only authenticated users, and only on their own tasks (or tasks shared with them). Today this is **not enforced**: anyone who can reach the API can read, change or delete any task. |
+| Which inputs come from users? | JSON body of `POST` and `PATCH /tasks` (`title`, `description`, `status`, plus any extra field a client adds) and the `task_id` path parameter. Indirectly: HTTP headers and query strings, not used yet. |
+| What abuses are possible today? | Deleting or editing other people's tasks (no authN/authZ); enumerating every task by iterating IDs 1, 2, 3...; flooding the in-memory store until the process runs out of memory (no rate limit, no quota); sending very large bodies; storing script content in a title or description that a future web front end might render (stored XSS); `/docs` exposes the full API map to anyone. |
+| What secrets could appear in this project later? | `SECRET_KEY`, the database password inside `DATABASE_URL`, API tokens for third-party services, cloud credentials (AWS keys), CI/CD tokens, TLS private keys (`*.pem`, `*.key`). |
+| Which controls already exist, and which test proves each? | Status allow-list: `test_invalid_status_is_rejected`, `test_patch_with_invalid_status_is_rejected`. Title required, trimmed, 1–200 chars: `test_blank_title_is_rejected`, `test_missing_title_is_rejected`, `test_too_long_title_is_rejected`, `test_title_is_trimmed`. Description ≤ 2,000 chars: `test_too_long_description_is_rejected`. No `null` on title/status: `test_patch_with_null_is_rejected`, `test_null_status_on_create_is_rejected`. Unknown fields rejected (no mass assignment of `id`): `test_unknown_field_on_create_is_rejected`, `test_unknown_field_on_patch_is_rejected`. Positive `task_id`: `test_non_positive_task_id_is_rejected`; 404 on unknown ID: `test_unknown_task_id_returns_404`. Process controls (not tested by code): `.gitignore` blocks `.env` and keys, `.env.example` holds only placeholders, protected `main`, mandatory peer review. |
+| What automated control should we add next? | A CI pipeline that runs `pytest` on every pull request and blocks the merge on failure; then secret scanning (e.g. gitleaks), SAST (e.g. Bandit/Semgrep), SCA on pinned dependencies (e.g. pip-audit), and security gates that fail the build. In the code: authentication, a request size limit and rate limiting. |
