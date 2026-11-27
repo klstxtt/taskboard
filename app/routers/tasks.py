@@ -1,8 +1,13 @@
-from fastapi import APIRouter, HTTPException
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, Path
 
 from app.schemas import Task, TaskCreate, TaskUpdate
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
+
+# Path parameter: positive integer only (422 otherwise)
+TaskId = Annotated[int, Path(ge=1)]
 
 # In-memory storage: replaced by a database in a later session
 _tasks: dict[int, Task] = {}
@@ -38,12 +43,12 @@ def list_tasks() -> list[Task]:
 
 
 @router.get("/{task_id}", response_model=Task)
-def get_task(task_id: int) -> Task:
+def get_task(task_id: TaskId) -> Task:
     return _get_or_404(task_id)
 
 
 @router.patch("/{task_id}", response_model=Task)
-def update_task(task_id: int, payload: TaskUpdate) -> Task:
+def update_task(task_id: TaskId, payload: TaskUpdate) -> Task:
     task = _get_or_404(task_id)
     changes = payload.model_dump(exclude_unset=True)
     updated = task.model_copy(update=changes)
@@ -52,6 +57,6 @@ def update_task(task_id: int, payload: TaskUpdate) -> Task:
 
 
 @router.delete("/{task_id}", status_code=204)
-def delete_task(task_id: int) -> None:
+def delete_task(task_id: TaskId) -> None:
     _get_or_404(task_id)
     del _tasks[task_id]
