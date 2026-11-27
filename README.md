@@ -41,6 +41,21 @@ uvicorn app.main:app --reload
 
 An unknown `task_id` returns 404.
 
+## Validation rules
+
+Invalid input is rejected with **422 Unprocessable Entity** (FastAPI's standard
+validation response).
+
+| Field | Rule |
+| --- | --- |
+| `title` | Required on create, trimmed, 1–200 characters, never `null` |
+| `description` | Optional, at most 2,000 characters |
+| `status` | One of `todo`, `in_progress`, `done`; default `todo`; never `null` |
+| Unknown fields (e.g. `id`, `owner`) | Rejected, so a client cannot set server-side fields |
+| `task_id` in the path | Positive integer (422 if not, 404 if unknown) |
+
+`PATCH` only changes the fields that are sent.
+
 ## Tests
 
 ```bash
@@ -78,6 +93,7 @@ taskboard/
 │       └── tasks.py       # /tasks endpoints and in-memory store
 ├── tests/
 │   ├── __init__.py
+│   ├── conftest.py        # fixtures: test client, empty store per test
 │   └── test_tasks.py
 ├── docs/
 ├── .gitignore
